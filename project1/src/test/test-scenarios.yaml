@@ -1,3 +1,93 @@
+execution:
+  - scenario: scenario1 verify endpoints
+    concurrency: 1
+    iterations: 1
+
+reporting:
+  - module: console
+  - module: final-stats
+    dump-csv: testresult.csv
+
+
+
+
+
+
 scenarios:
-    scenario1:
+    scenario1 verify endpoints:
+        store-cache: false
+        data-sources:
+            - path: credentials.csv
+              random-order: false
+        requests:
+          - label: Authentication_1::Getting license plate!
+            #url: https://api-aps-usqe3.qe.tivoservice.com/v1/licensePlate
+            url: http://aps-usqe3-01.qea1.tivo.com:40253/v1/licensePlate
+            hearders:
+                 accept: application/json
+                 Content-Type: application/json
+            body:
+                 msoName: tivo
+                 deviceType: managedAndroidTvAps
+                 hardwareSerialNumber: ${HSN}
+                 caDeviceId: ${HSN}
+            method: POST
+            extract-jsonpath:
+                 license_plate_code: $.licensePlateCode
+
+
+
+          - label: Authentication_2::Binding license plate
+            url: http://dbs-preprod.qea1.tivo.com:50207/licensePlateBindingStore
+            headers:
+                 accept: application/json
+                 Content-Type: application/json
+                 x-mso-partner: 3095
+            body:
+                licensePlateCode: ${license_plate_code}
+                partnerId: tivo:pt.3095
+                partnerCustomerId: 00${PCID}
+                type: licensePlateBindingStore
+            method: POST
+
+
+          - label: Authentication_3::Getting Saml token
+            think-time: 1s
+            #url: https://api-aps-usqe3.qe.tivoservice.com/v1/samlToken
+            url: http://aps-usqe3-01.qea1.tivo.com:40253/v1/licensePlate
+            headers:
+                accept: application/json
+                Content-Type: application/json
+            body:
+                hardwareSerialNumber: ${HSN}
+                caDeviceId: ${HSN}
+                msoName: tivo
+                deviceType: managedAndroidTvAps
+                licensePlateCode: ${license_plate_code}
+            method: POST
+            extract-jsonpath:
+                saml_token: $.samlToken
+
+          - label: Authentication_4::Login
+            think-time: 1s
+            #url: https://api-aps-usqe3.qe.tivoservice.com/v1/login
+            url: http://aps-usqe3-01.qea1.tivo.com:40253/v1/licensePlate
+            headers:
+                accept: application/json
+                Content-Type: application/json
+            body:
+                hardwareSerialNumber: ${HSN}
+                caDeviceID: ${HSN}
+                msoName: tivo
+                deviceType: managedAndroidTvAps
+                samlToken: ${saml_token}
+                softwareVersion: sling
+                timezoneName: UTC
+                locale: en_US_MAC
+                productName: sling
+            method: POST
+            extract-jsonpath:
+                authToken: $.authToken
+                tsn: $.tivoSerialNumber
+
 
